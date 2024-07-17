@@ -15,6 +15,17 @@ type Product struct {
 	Name string `json:"name"`
 }
 
+type Cart struct {
+	Client_id  int `json:"client_id"`
+	Product_id int `json:"product_id"`
+	Quantity   int `json:"quantity"`
+}
+
+type Favorites struct {
+	Product_id int `json:"product_id"`
+	Client_id  int `json:"client_id"`
+}
+
 type ProductWithRating struct {
 	Product
 	AverageRating float64 `json:"average_rating"`

@@ -19,7 +19,7 @@ func (app *application) routes() http.Handler {
 	mux.Post("/api/login", dynamicMiddleware.ThenFunc(app.loginClient))
 
 	// Products
-	mux.Get("/products", dynamicMiddleware.ThenFunc(app.getProducts)) // work
+	mux.Get("/products", dynamicMiddleware.ThenFunc(app.getProducts))           // work
 	mux.Post("/api/product/add", dynamicMiddleware.ThenFunc(app.createProduct)) // work
 
 	// Ratings
@@ -40,6 +40,11 @@ func (app *application) routes() http.Handler {
 	mux.Post("/api/rec/add", dynamicMiddleware.ThenFunc(app.createRec))     // workk
 	mux.Get("/api/rec/get/:id", standardMiddleware.ThenFunc(app.getRec))    //http://localhost:4000/api/rec/get/2
 	mux.Get("/api/rec/get-all", standardMiddleware.ThenFunc(app.GetAllRec)) // work
+
+	// Fav
+
+	mux.Post("/addFavorites", dynamicMiddleware.ThenFunc(app.addFavorite))
+	mux.Get("/getFavorites", standardMiddleware.ThenFunc(app.getFavorites))
 
 	return standardMiddleware.Then(mux)
 }

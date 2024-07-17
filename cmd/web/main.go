@@ -25,6 +25,7 @@ type application struct {
 	event         *dbs.EventModel
 	rec           *dbs.Recommendations
 	product       *dbs.ProductModel
+	fav           *dbs.FavModel
 }
 
 func main() {
@@ -62,6 +63,7 @@ func main() {
 		event:    &dbs.EventModel{DB: db},
 		rec:      &dbs.Recommendations{DB: db},
 		product:  &dbs.ProductModel{DB: db},
+		fav:      &dbs.FavModel{DB: db},
 	}
 
 	srv := &http.Server{
