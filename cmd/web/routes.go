@@ -26,25 +26,33 @@ func (app *application) routes() http.Handler {
 	mux.Post("/api/review/add", dynamicMiddleware.ThenFunc(app.addReview))
 	mux.Get("/api/product/:id", standardMiddleware.ThenFunc(app.getProductWithRating))
 
-	// Sights
-	mux.Post("/api/sight/add", dynamicMiddleware.ThenFunc(app.createSight))       // work
-	mux.Get("/api/sight/get/:id", standardMiddleware.ThenFunc(app.getSight))      //http://localhost:4000/api/sight/get/2 work
-	mux.Get("/api/sights/get-all", standardMiddleware.ThenFunc(app.getAllSights)) // work
-
-	// Events
-	mux.Post("/api/event/add", dynamicMiddleware.ThenFunc(app.createEvent))
-	mux.Get("/api/event/get/:id", standardMiddleware.ThenFunc(app.getEvent))     //http://localhost:4000/api/event/get/2 work
-	mux.Get("/api/event/get-all", standardMiddleware.ThenFunc(app.GetAllEvents)) // work
-
-	// Rec
-	mux.Post("/api/rec/add", dynamicMiddleware.ThenFunc(app.createRec))     // workk
-	mux.Get("/api/rec/get/:id", standardMiddleware.ThenFunc(app.getRec))    //http://localhost:4000/api/rec/get/2
-	mux.Get("/api/rec/get-all", standardMiddleware.ThenFunc(app.GetAllRec)) // work
-
 	// Fav
 
-	mux.Post("/addFavorites", dynamicMiddleware.ThenFunc(app.addFavorite))
-	mux.Get("/getFavorites", standardMiddleware.ThenFunc(app.getFavorites))
+	mux.Post("/add-favorites", dynamicMiddleware.ThenFunc(app.addFavorite))  // work
+	mux.Get("/get-favorites", standardMiddleware.ThenFunc(app.getFavorites)) // work http://localhost:4000/getFavorites?id=1
+
+	// Information
+
+	mux.Post("/add-details", dynamicMiddleware.ThenFunc(app.addInformation))
+	mux.Get("/get-details", standardMiddleware.ThenFunc(app.getInformation))
+
+	// Image
+
+	mux.Post("/add-image", dynamicMiddleware.ThenFunc(app.addImage))
+
+	// Admin
+
+	mux.Post("/api/login", dynamicMiddleware.ThenFunc(app.loginClient))
+
+	// Order
+
+	mux.Post("/api/add-order", dynamicMiddleware.ThenFunc(app.insertOrder))
+	mux.Get("/api/get-order", standardMiddleware.ThenFunc(app.getOrderById))
+
+	mux.Post("/api/add-order-item", dynamicMiddleware.ThenFunc(app.insertOrderItem))
+	mux.Get("/api/get-order-item", standardMiddleware.ThenFunc(app.getOrdeItemrById))
+
+	mux.Put("/api/update-status", dynamicMiddleware.ThenFunc(app.updateStatusByUserID))
 
 	return standardMiddleware.Then(mux)
 }

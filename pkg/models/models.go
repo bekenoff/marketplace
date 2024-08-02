@@ -99,3 +99,37 @@ type SightsCategory struct {
 	Id            int `json:"id"`
 	SightCategory int `json:"sight_category"`
 }
+
+type Information struct {
+	Id           int `json:"id"`
+	Product_id   int `json"product_id"`
+	Articul      int `json"articul"`
+	Brand        int `json"brand"`
+	Series       int `json"series"`
+	Country      int `json"country"`
+	Color        int `json"color"`
+	Quantity     int `json"quantity"`
+	Size         int `json"size"`
+	Packing_size int `json"packing_size"`
+}
+
+type Image struct {
+	Id         int    `json:"id"`
+	Product_id int    `json:"product_id"`
+	Image_url  string `json:"image_url"`
+}
+
+type Order struct {
+	Id      int    `json:"id"`
+	User_id int    `json:"user_id"`
+	Status  string `json:"status"`
+	Address string `json:"address"`
+	Price   int    `json:"price"`
+}
+
+type OrderItem struct {
+	OrderID   int `json:"order_id"`
+	ProductID int `json:"product_id"`
+	Price     int `json:"price"`
+	Qty       int `json:"qty"`
+}

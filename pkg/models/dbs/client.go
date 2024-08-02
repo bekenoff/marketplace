@@ -37,7 +37,7 @@ func (m *ClientModel) Insert(username, password, email, first_name, last_name, t
 }
 
 func (m *ClientModel) GetUserById(id string) ([]byte, error) {
-	stmt := `SELECT * FROM astana.client WHERE id = ?`
+	stmt := `SELECT * FROM user WHERE id = ?`
 
 	userRow := m.DB.QueryRow(stmt, id)
 
@@ -62,7 +62,7 @@ func (m *ClientModel) GetUserById(id string) ([]byte, error) {
 func (m *ClientModel) Authenticate(email, password string) (int, error) {
 	var id int
 	var hashedPassword []byte
-	stmt := "SELECT id, password FROM astana.client WHERE email = ?"
+	stmt := "SELECT id, password FROM user WHERE email = ?"
 	row := m.DB.QueryRow(stmt, email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {

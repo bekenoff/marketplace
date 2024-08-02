@@ -20,16 +20,16 @@ type application struct {
 	infoLog       *log.Logger
 	session       *sessions.Session
 	templateCache map[string]*template.Template
-	sight         *dbs.SightModel
 	client        *dbs.ClientModel
-	event         *dbs.EventModel
-	rec           *dbs.Recommendations
 	product       *dbs.ProductModel
 	fav           *dbs.FavModel
+	details       *dbs.InformationModel
+	image         *dbs.ImageModel
+	order         *dbs.OrderModel
 }
 
 func main() {
-	dsn := "root:@tcp(localhost:3306)/marketplace"
+	dsn := "root:@tcp(localhost:3307)/marketplace"
 	addr := flag.String("addr", ":4000", "HTTP network address")
 
 	secret := flag.String("secret", "s6Ndh+pPbnzHbS*+9Pk8qGWhTzbpa@ge", "Secret key")
@@ -58,12 +58,14 @@ func main() {
 		errorLog: errorLog,
 		infoLog:  infoLog,
 		session:  session,
-		sight:    &dbs.SightModel{DB: db},
-		client:   &dbs.ClientModel{DB: db},
-		event:    &dbs.EventModel{DB: db},
-		rec:      &dbs.Recommendations{DB: db},
-		product:  &dbs.ProductModel{DB: db},
-		fav:      &dbs.FavModel{DB: db},
+
+		client: &dbs.ClientModel{DB: db},
+
+		product: &dbs.ProductModel{DB: db},
+		fav:     &dbs.FavModel{DB: db},
+		details: &dbs.InformationModel{DB: db},
+		image:   &dbs.ImageModel{DB: db},
+		order:   &dbs.OrderModel{DB: db},
 	}
 
 	srv := &http.Server{

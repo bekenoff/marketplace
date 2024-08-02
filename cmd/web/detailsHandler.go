@@ -9,47 +9,48 @@ import (
 	"strconv"
 )
 
-func (app *application) addFavorite(w http.ResponseWriter, r *http.Request) {
-	var favorite models.Favorites
+func (app *application) addInformation(w http.ResponseWriter, r *http.Request) {
+	var newInformation models.Information
 
 	body, _ := io.ReadAll(r.Body)
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	err := json.NewDecoder(r.Body).Decode(&favorite)
+	err := json.NewDecoder(r.Body).Decode(&newInformation)
+
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	err = app.fav.Insert(&favorite)
+	err = app.details.Insert(&newInformation)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusCreated) // 201
 }
 
-func (app *application) getFavorites(w http.ResponseWriter, r *http.Request) {
-	clientIDStr := r.URL.Query().Get("id")
-	if clientIDStr == "" {
+func (app *application) getInformation(w http.ResponseWriter, r *http.Request) {
+	informationIDString := r.URL.Query().Get("id")
+	if informationIDString == "" {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	clientID, err := strconv.Atoi(clientIDStr)
+	informationID, err := strconv.Atoi(informationIDString)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	favorites, err := app.fav.GetByClientID(clientID)
+	information, err := app.details.GetInformation(informationID)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	response, err := json.Marshal(favorites)
+	response, err := json.Marshal(information)
 	if err != nil {
 		app.serverError(w, err)
 		return
