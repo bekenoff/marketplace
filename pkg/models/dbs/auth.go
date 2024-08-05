@@ -36,6 +36,28 @@ func (m *ClientModel) Insert(username, password, email, first_name, last_name, t
 	return nil
 }
 
+func (m *ClientModel) InsertLaw(client *models.ClientLaw) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(client.Password), 12)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+        INSERT INTO user_law
+        (company_name, contact_name, password, law_address, email, phone, bin, bik, iik, bank) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+
+	_, err = m.DB.Exec(stmt, client.CompanyName, client.ContactName, string(hashedPassword), client.LawAddress, client.Email, client.Phone, client.Bin, client.Bik, client.Iik, client.Bank)
+	if err != nil {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			return models.ErrDuplicateEmail
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (m *ClientModel) GetUserById(id string) ([]byte, error) {
 	stmt := `SELECT * FROM user WHERE id = ?`
 
@@ -82,4 +104,50 @@ func (m *ClientModel) Authenticate(email, password string) (int, error) {
 		}
 	}
 	return id, nil
+}
+
+func (m *ClientModel) GetClientPhoneById(idclient string) (string, error) {
+	stmt := `SELECT telephone FROM user WHERE id = ?`
+	var clientphone string
+	err := m.DB.QueryRow(stmt, idclient).Scan(&clientphone)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("no client found with the given id")
+		}
+		return "", err
+	}
+	return clientphone, nil
+}
+
+func (m *ClientModel) ChangePassword(id int, oldPassword, newPassword string) error {
+
+	var hashedPassword string
+	stmt := "SELECT password FROM user WHERE id = ?"
+	err := m.DB.QueryRow(stmt, id).Scan(&hashedPassword)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(oldPassword))
+	if err != nil {
+		// Если пароль не совпадает, возвращаем ошибку
+		return errors.New("incorrect old password")
+	}
+
+	hashedNewPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	updateStmt := `
+		UPDATE client
+		SET clientpass = ?
+		WHERE idclient = ?`
+
+	_, err = m.DB.Exec(updateStmt, string(hashedNewPassword), id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -38,18 +38,6 @@ type Review struct {
 	Review    string `json:"review"`
 }
 
-type Sight struct {
-	Id           int    `json:"id"`
-	Name         string `json:"name"`
-	Address      string `json:"address"`
-	PhoneNumber  string `json:"phone_number"`
-	ContentInfo  string `json:"content_info"`
-	BusNumbers   string `json:"bus_numbers"`
-	WorkingDays  string `json:"working_days"`
-	WorkingHours string `json:"working_hours"`
-	Visited      int    `json:"visited"`
-	ImageUrl     string `json:"image_url"`
-}
 type Client struct {
 	Id         int    `json:"id"`
 	Username   string `json:"username"`
@@ -58,12 +46,6 @@ type Client struct {
 	First_name string `json:"firstname"`
 	Last_name  string `json:"lastname"`
 	Telephone  string `json:"telephone"`
-}
-
-type Client_Sights struct {
-	Id       int `json:"id"`
-	ClientId int `json:"client_id"`
-	SightId  int `json:"sight_id"`
 }
 
 type Client_Events struct {
@@ -132,4 +114,17 @@ type OrderItem struct {
 	ProductID int `json:"product_id"`
 	Price     int `json:"price"`
 	Qty       int `json:"qty"`
+}
+
+type ClientLaw struct {
+	CompanyName string `json:"company_name"`
+	ContactName string `json:"contact_name"`
+	Password    string `json:"password"`
+	LawAddress  string `json:"law_address"`
+	Email       string `json:"email"`
+	Phone       int    `json:"phone"`
+	Bin         int    `json:"bin"`
+	Bik         int    `json:"bik"`
+	Iik         int    `json:"iik"`
+	Bank        string `json:"bank"`
 }

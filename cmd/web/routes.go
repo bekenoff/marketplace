@@ -16,7 +16,9 @@ func (app *application) routes() http.Handler {
 
 	// Clients
 	mux.Post("/api/create-client", dynamicMiddleware.ThenFunc(app.signupClient))
+	mux.Post("/api/create-client-law", dynamicMiddleware.ThenFunc(app.signupClientLaw))
 	mux.Post("/api/login", dynamicMiddleware.ThenFunc(app.loginClient))
+	mux.Put("/client-password-recovery/:id", dynamicMiddleware.ThenFunc(app.Recoverybysms))
 
 	// Products
 	mux.Get("/products", dynamicMiddleware.ThenFunc(app.getProducts))           // work
