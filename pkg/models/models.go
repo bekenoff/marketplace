@@ -70,18 +70,6 @@ type EventsCategory struct {
 	EventCategory int `json:"event_category"`
 }
 
-type Recommendation struct {
-	Id              int `json:"id"`
-	ClientId        int `json:"client_id"`
-	SightCategoryId int `json:"sight_category_id"`
-	EventCategoryId int `json:"event_category_id"`
-}
-
-type SightsCategory struct {
-	Id            int `json:"id"`
-	SightCategory int `json:"sight_category"`
-}
-
 type Information struct {
 	Id           int `json:"id"`
 	Product_id   int `json"product_id"`
@@ -127,4 +115,9 @@ type ClientLaw struct {
 	Bik         int    `json:"bik"`
 	Iik         int    `json:"iik"`
 	Bank        string `json:"bank"`
+}
+
+type ProductInventory struct {
+	Id       int `json:"id"`
+	Quantity int `json:"quantity"`
 }

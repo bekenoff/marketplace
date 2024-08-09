@@ -22,6 +22,19 @@ func (m *ProductModel) InsertProduct(name string) error {
 	return nil
 }
 
+func (m *ProductModel) InsertProductInventory(quantity int) error {
+	stmt := `
+        INSERT INTO product_inventory
+		(quantity)
+        VALUES (?);
+    `
+	_, err := m.DB.Exec(stmt, quantity)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *ProductModel) InsertRating(productID, rating int, review string) error {
 	stmt := `INSERT INTO reviews (product_id, rating, review) VALUES (?, ?, ?)`
 	_, err := m.DB.Exec(stmt, productID, rating, review)

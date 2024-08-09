@@ -148,3 +148,19 @@ func (app *application) createProduct(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 }
+
+func (app *application) createProductInventory(w http.ResponseWriter, r *http.Request) {
+	var product models.ProductInventory
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err := app.product.InsertProductInventory(product.Quantity)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}

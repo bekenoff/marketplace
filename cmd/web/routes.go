@@ -23,6 +23,7 @@ func (app *application) routes() http.Handler {
 	// Products
 	mux.Get("/products", dynamicMiddleware.ThenFunc(app.getProducts))           // work
 	mux.Post("/api/product/add", dynamicMiddleware.ThenFunc(app.createProduct)) // work
+	mux.Post("/api/product-inventory/add", dynamicMiddleware.ThenFunc(app.createProductInventory))
 
 	// Ratings
 	mux.Post("/api/review/add", dynamicMiddleware.ThenFunc(app.addReview))
