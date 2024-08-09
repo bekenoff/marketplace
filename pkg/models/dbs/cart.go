@@ -13,7 +13,7 @@ func (m *CartModel) Insert(cart *models.Cart) error {
 	stmt := `
         INSERT INTO cart_item
         (client_id, product_id, quantity) 
-        VALUES (?, ?);`
+        VALUES (?, ?, ?);`
 
 	_, err := m.DB.Exec(stmt, cart.Client_id, cart.Product_id, cart.Quantity)
 	if err != nil {
@@ -50,4 +50,17 @@ func (m *CartModel) GetByClientID(clientID int) ([]*models.Cart, error) {
 	}
 
 	return carts, nil
+}
+
+func (m *CartModel) Delete(clientID, productID int) error {
+	stmt := `
+        DELETE FROM cart_item
+        WHERE client_id = ? AND product_id = ?;`
+
+	_, err := m.DB.Exec(stmt, clientID, productID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

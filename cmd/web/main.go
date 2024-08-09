@@ -26,6 +26,7 @@ type application struct {
 	details       *dbs.InformationModel
 	image         *dbs.ImageModel
 	order         *dbs.OrderModel
+	cart          *dbs.CartModel
 }
 
 func main() {
@@ -66,6 +67,7 @@ func main() {
 		details: &dbs.InformationModel{DB: db},
 		image:   &dbs.ImageModel{DB: db},
 		order:   &dbs.OrderModel{DB: db},
+		cart:    &dbs.CartModel{DB: db},
 	}
 
 	srv := &http.Server{

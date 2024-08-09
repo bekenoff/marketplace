@@ -20,7 +20,7 @@ func getProducts(c *gin.Context) {
 	var productsWithRating []models.ProductWithRating
 	for _, product := range products {
 		var reviews []models.Review
-		db.Where("product_id = ?", product.ID).Find(&reviews)
+		db.Where("product_id = ?", product.Id).Find(&reviews)
 
 		var totalRating int
 		for _, review := range reviews {
@@ -140,7 +140,7 @@ func (app *application) createProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := app.product.InsertProduct(product.Name)
+	err := app.product.InsertProduct(product.Name, product.Description, product.Category_id, product.Inventory_id, product.Discount_id, product.Price)
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -163,4 +163,74 @@ func (app *application) createProductInventory(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (app *application) getProductByID(w http.ResponseWriter, r *http.Request) {
+	// Extract the product ID from the URL query parameter.
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Convert the ID from string to integer.
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the product by its ID from the database.
+	product, err := app.product.GetProductByID(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.clientError(w, http.StatusNotFound)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	// Set the content type and encode the product to JSON.
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(product)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+}
+
+func (app *application) getProductByCategoryID(w http.ResponseWriter, r *http.Request) {
+	// Extract the product ID from the URL query parameter.
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Convert the ID from string to integer.
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the product by its ID from the database.
+	product, err := app.product.GetProductByCategoryID(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.clientError(w, http.StatusNotFound)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	// Set the content type and encode the product to JSON.
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(product)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 }

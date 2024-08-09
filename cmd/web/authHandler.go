@@ -26,13 +26,34 @@ func (app *application) signupClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.client.Insert(newClient.Username, newClient.Email, newClient.Password, newClient.First_name, newClient.Last_name, newClient.Telephone)
+	err = app.client.Insert(newClient.Username, newClient.Password, newClient.First_name, newClient.Last_name, newClient.Telephone)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated) // 201
+}
+
+func (app *application) getUserById(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.URL.Query().Get("id")
+	if userIDStr == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	user, err := app.client.GetUserById(userIDStr)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.clientError(w, http.StatusNotFound)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(user)
 }
 
 func (app *application) signupClientLaw(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +91,7 @@ func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientId, err := app.client.Authenticate(client.Email, client.Password)
+	clientId, err := app.client.Authenticate(client.Password, client.Telephone)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			app.clientError(w, http.StatusBadRequest)
@@ -103,7 +124,7 @@ func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientId, err := app.client.AuthenticateAdmin(client.Email, client.Password)
+	clientId, err := app.client.AuthenticateAdmin(client.Telephone, client.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			app.clientError(w, http.StatusBadRequest)

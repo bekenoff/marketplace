@@ -11,11 +11,19 @@ var (
 )
 
 type Product struct {
-	ID   uint   `json:"id" gorm:"primaryKey"`
-	Name string `json:"name"`
+	Id           uint    `json:"id"`
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	Category_id  int     `json:"category_id"`
+	Inventory_id int     `json:"inventory_id"`
+	Price        float64 `json:"price"`
+	Discount_id  int     `json:"discount_id"`
+	Created_at   string  `json:"created_at"`
+	Modified_at  string  `json:"modified_at"`
 }
 
 type Cart struct {
+	Id         int `json:"id"`
 	Client_id  int `json:"client_id"`
 	Product_id int `json:"product_id"`
 	Quantity   int `json:"quantity"`
@@ -39,35 +47,20 @@ type Review struct {
 }
 
 type Client struct {
-	Id         int    `json:"id"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	First_name string `json:"firstname"`
-	Last_name  string `json:"lastname"`
-	Telephone  string `json:"telephone"`
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	First_name  string `json:"firstname"`
+	Last_name   string `json:"lastname"`
+	Telephone   int    `json:"telephone"`
+	Created_at  string `json:"created_at"`
+	Modified_at string `json:"modified_at"`
 }
 
 type Client_Events struct {
 	Id       int `json:"id"`
 	ClientId int `json:"client_id"`
 	EventId  int `json:"event_id"`
-}
-
-type Events struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Schedule    string `json:"schedule"`
-	Bus         string `json:"bus"`
-	Price       string `json:"price"`
-	Description string `json:"description"`
-	ImageUrl    string `json:"image_url"`
-	Category    int    `json:"category"`
-}
-
-type EventsCategory struct {
-	Id            int `json:"id"`
-	EventCategory int `json:"event_category"`
 }
 
 type Information struct {

@@ -17,11 +17,14 @@ func (app *application) routes() http.Handler {
 	// Clients
 	mux.Post("/api/create-client", dynamicMiddleware.ThenFunc(app.signupClient))
 	mux.Post("/api/create-client-law", dynamicMiddleware.ThenFunc(app.signupClientLaw))
+	mux.Get("/api/get-client", dynamicMiddleware.ThenFunc(app.getUserById))
 	mux.Post("/api/login", dynamicMiddleware.ThenFunc(app.loginClient))
 	mux.Put("/client-password-recovery/:id", dynamicMiddleware.ThenFunc(app.Recoverybysms))
 
 	// Products
-	mux.Get("/products", dynamicMiddleware.ThenFunc(app.getProducts))           // work
+	mux.Get("/all-products", dynamicMiddleware.ThenFunc(app.getProducts)) // work
+	mux.Get("/api/get-product", dynamicMiddleware.ThenFunc(app.getProductByID))
+	mux.Get("/api/get-product-inventory", dynamicMiddleware.ThenFunc(app.getProductByCategoryID))
 	mux.Post("/api/product/add", dynamicMiddleware.ThenFunc(app.createProduct)) // work
 	mux.Post("/api/product-inventory/add", dynamicMiddleware.ThenFunc(app.createProductInventory))
 
@@ -56,6 +59,11 @@ func (app *application) routes() http.Handler {
 	mux.Get("/api/get-order-item", standardMiddleware.ThenFunc(app.getOrdeItemrById))
 
 	mux.Put("/api/update-status", dynamicMiddleware.ThenFunc(app.updateStatusByUserID))
+
+	// Cart
+	mux.Get("/api/cart", dynamicMiddleware.ThenFunc(app.getCartItems))
+	mux.Post("/api/cart/add", dynamicMiddleware.ThenFunc(app.addCartItem))
+	mux.Del("/api/cart/remove", dynamicMiddleware.ThenFunc(app.deleteCartItem))
 
 	return standardMiddleware.Then(mux)
 }

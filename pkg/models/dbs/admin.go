@@ -9,11 +9,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (m *ClientModel) AuthenticateAdmin(email, password string) (int, error) {
+func (m *ClientModel) AuthenticateAdmin(telephone int, password string) (int, error) {
 	var id int
 	var hashedPassword []byte
 	stmt := "SELECT id, password FROM admin WHERE email = ?"
-	row := m.DB.QueryRow(stmt, email)
+	row := m.DB.QueryRow(stmt, telephone)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -41,7 +41,7 @@ func (m *ClientModel) GetUserByIdAdmin(id string) ([]byte, error) {
 
 	c := &models.Client{}
 
-	err := userRow.Scan(&c.Id, &c.Email, &c.Password)
+	err := userRow.Scan(&c.Id, &c.Telephone, &c.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNoRecord

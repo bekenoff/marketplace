@@ -14,7 +14,7 @@ type ClientModel struct {
 	DB *sql.DB
 }
 
-func (m *ClientModel) Insert(username, password, email, first_name, last_name, telephone string) error {
+func (m *ClientModel) Insert(username, password, first_name, last_name string, telephone int) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return err
@@ -22,10 +22,10 @@ func (m *ClientModel) Insert(username, password, email, first_name, last_name, t
 
 	stmt := `
         INSERT INTO user
-        (username, password, email, first_name, last_name, telephone) 
-        VALUES (?, ?, ?, ?, ?, ?);`
+        (username, password, first_name, last_name, telephone) 
+        VALUES (?, ?, ?, ?, ?);`
 
-	_, err = m.DB.Exec(stmt, username, string(hashedPassword), email, first_name, last_name, telephone)
+	_, err = m.DB.Exec(stmt, username, string(hashedPassword), first_name, last_name, telephone)
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 			return models.ErrDuplicateEmail
@@ -65,7 +65,7 @@ func (m *ClientModel) GetUserById(id string) ([]byte, error) {
 
 	c := &models.Client{}
 
-	err := userRow.Scan(&c.Id, &c.Email, &c.Password)
+	err := userRow.Scan(&c.Id, &c.Username, &c.Password, &c.First_name, &c.Last_name, &c.Telephone, &c.Created_at, &c.Modified_at)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNoRecord
@@ -81,11 +81,11 @@ func (m *ClientModel) GetUserById(id string) ([]byte, error) {
 	return convertedUser, nil
 }
 
-func (m *ClientModel) Authenticate(email, password string) (int, error) {
+func (m *ClientModel) Authenticate(password string, telephone int) (int, error) {
 	var id int
 	var hashedPassword []byte
-	stmt := "SELECT id, password FROM user WHERE email = ?"
-	row := m.DB.QueryRow(stmt, email)
+	stmt := "SELECT id, password FROM user WHERE telephone = ?"
+	row := m.DB.QueryRow(stmt, telephone)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
