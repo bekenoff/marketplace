@@ -11,13 +11,30 @@ type OrderModel struct {
 	DB *sql.DB
 }
 
-func (m *OrderModel) Insert(userID int, status, address string, price int) error {
-	stmt := `
-        INSERT INTO ` + "`order`" + ` (user_id, status, address, price)
-        VALUES (?, ?, ?, ?);`
-
-	_, err := m.DB.Exec(stmt, userID, status, address, price)
+func (m *OrderModel) Insert(userID int, status, address string, price, productID, quantity int) error {
+	
+	tx, err := m.DB.Begin()
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+
+	stmtOrder := `INSERT INTO ` + "`order`" + ` (user_id, status, address, price, product_id, quantity) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err = tx.Exec(stmtOrder, userID, status, address, price, productID, quantity)
+	if err != nil {
+		return err
+	}
+
+
+	stmtInventory := `UPDATE product_inventory SET quantity = quantity - ? WHERE product_id = ?`
+	_, err = tx.Exec(stmtInventory, quantity, productID)
+	if err != nil {
+		return err
+	}
+
+	
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
@@ -77,6 +94,17 @@ func (m *OrderModel) InsertOrderItem(orderID, productID, price, qty int) error {
 		return err
 	}
 
+	return nil
+}
+
+func (m *OrderModel) DecreaseProductInventory(productID, quantity int) error {
+	stmt := `UPDATE product_inventory 
+             SET quantity = quantity - ? 
+             WHERE product_id = ?`
+	_, err := m.DB.Exec(stmt, quantity, productID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

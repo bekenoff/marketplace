@@ -11,13 +11,15 @@ import (
 func (app *application) insertOrder(w http.ResponseWriter, r *http.Request) {
 	var newOrder models.Order
 
+	// Decode the incoming request body into the Order struct
 	err := json.NewDecoder(r.Body).Decode(&newOrder)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	err = app.order.Insert(newOrder.User_id, newOrder.Status, newOrder.Address, newOrder.Price)
+	// Insert the order and update inventory
+	err = app.order.Insert(newOrder.User_id, newOrder.Status, newOrder.Address, newOrder.Price, newOrder.Product_id, newOrder.Quantity)
 	if err != nil {
 		app.serverError(w, err)
 		return

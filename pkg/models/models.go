@@ -83,11 +83,13 @@ type Image struct {
 }
 
 type Order struct {
-	Id      int    `json:"id"`
-	User_id int    `json:"user_id"`
-	Status  string `json:"status"`
-	Address string `json:"address"`
-	Price   int    `json:"price"`
+	Id         int    `json:"id"`
+	User_id    int    `json:"user_id"`
+	Status     string `json:"status"`
+	Address    string `json:"address"`
+	Price      int    `json:"price"`
+	Product_id int    `json:"product_id"`
+	Quantity   int    `json:"quantity"`
 }
 
 type OrderItem struct {
