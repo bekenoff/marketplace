@@ -14,7 +14,7 @@ type ClientModel struct {
 	DB *sql.DB
 }
 
-func (m *ClientModel) Insert(username, password, first_name, last_name string, telephone int) error {
+func (m *ClientModel) Insert(telephone int, password string) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return err
@@ -22,10 +22,10 @@ func (m *ClientModel) Insert(username, password, first_name, last_name string, t
 
 	stmt := `
         INSERT INTO user
-        (username, password, first_name, last_name, telephone) 
-        VALUES (?, ?, ?, ?, ?);`
+        (telephone, password) 
+        VALUES (?, ?);`
 
-	_, err = m.DB.Exec(stmt, username, string(hashedPassword), first_name, last_name, telephone)
+	_, err = m.DB.Exec(stmt, telephone, string(hashedPassword))
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 			return models.ErrDuplicateEmail
@@ -65,7 +65,7 @@ func (m *ClientModel) GetUserById(id string) ([]byte, error) {
 
 	c := &models.Client{}
 
-	err := userRow.Scan(&c.Id, &c.Username, &c.Password, &c.First_name, &c.Last_name, &c.Telephone, &c.Created_at, &c.Modified_at)
+	err := userRow.Scan(&c.Id, &c.Telephone, &c.Password, &c.Created_at, &c.Modified_at)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNoRecord

@@ -48,11 +48,8 @@ type Review struct {
 
 type Client struct {
 	Id          int    `json:"id"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	First_name  string `json:"firstname"`
-	Last_name   string `json:"lastname"`
 	Telephone   int    `json:"telephone"`
+	Password    string `json:"password"`
 	Created_at  string `json:"created_at"`
 	Modified_at string `json:"modified_at"`
 }

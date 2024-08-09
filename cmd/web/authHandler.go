@@ -26,7 +26,7 @@ func (app *application) signupClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.client.Insert(newClient.Username, newClient.Password, newClient.First_name, newClient.Last_name, newClient.Telephone)
+	err = app.client.Insert(newClient.Telephone, newClient.Password)
 	if err != nil {
 		app.serverError(w, err)
 		return
