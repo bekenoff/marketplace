@@ -65,5 +65,9 @@ func (app *application) routes() http.Handler {
 	mux.Post("/api/cart/add", dynamicMiddleware.ThenFunc(app.addCartItem))
 	mux.Del("/api/cart/remove", dynamicMiddleware.ThenFunc(app.deleteCartItem))
 
+	// Discount
+
+	mux.Post("/api/discount/add", dynamicMiddleware.ThenFunc(app.addDiscount))
+
 	return standardMiddleware.Then(mux)
 }

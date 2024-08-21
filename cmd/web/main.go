@@ -27,6 +27,7 @@ type application struct {
 	image         *dbs.ImageModel
 	order         *dbs.OrderModel
 	cart          *dbs.CartModel
+	discount      *dbs.DiscountModel
 }
 
 func main() {
@@ -62,12 +63,13 @@ func main() {
 
 		client: &dbs.ClientModel{DB: db},
 
-		product: &dbs.ProductModel{DB: db},
-		fav:     &dbs.FavModel{DB: db},
-		details: &dbs.InformationModel{DB: db},
-		image:   &dbs.ImageModel{DB: db},
-		order:   &dbs.OrderModel{DB: db},
-		cart:    &dbs.CartModel{DB: db},
+		product:  &dbs.ProductModel{DB: db},
+		fav:      &dbs.FavModel{DB: db},
+		details:  &dbs.InformationModel{DB: db},
+		image:    &dbs.ImageModel{DB: db},
+		order:    &dbs.OrderModel{DB: db},
+		cart:     &dbs.CartModel{DB: db},
+		discount: &dbs.DiscountModel{DB: db},
 	}
 
 	srv := &http.Server{

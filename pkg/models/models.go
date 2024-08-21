@@ -10,6 +10,15 @@ var (
 	ErrDuplicateEmail     = errors.New("models: duplicate email")
 )
 
+type Discount struct {
+	Id          int    `json:"id"`
+	Product_id  int    `json:"product_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Percent     int    `json:"discount_percent"`
+	Active      bool   `json:"active"`
+}
+
 type Product struct {
 	Id           uint    `json:"id"`
 	Name         string  `json:"name"`
