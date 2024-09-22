@@ -13,13 +13,15 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sfreiberg/gotwilio"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var jwtKey = []byte("your_secret_key")
 
 // Структура для хранения данных токена
 type Claims struct {
-	UserID int `json:"user_id"`
+	Telephone int `json:"telephone"`
+	UserID    int `json:"user_id"` // добавьте это поле, если оно вам нужно
 	jwt.RegisteredClaims
 }
 
@@ -117,32 +119,36 @@ func (app *application) signupClientLaw(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
-	var client models.Client
+	var credentials struct {
+		Telephone int    `json:"telephone"`
+		Password  string `json:"password"`
+	}
 
-	body, _ := io.ReadAll(r.Body)
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	err := json.NewDecoder(r.Body).Decode(&client)
+	// Декодируем тело запроса
+	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	clientId, err := app.client.Authenticate(client.Password, client.Telephone)
+	// Проверка пользователя в базе данных
+	storedPassword, err := app.client.GetPasswordByTelephone(credentials.Telephone)
 	if err != nil {
-		if errors.Is(err, models.ErrInvalidCredentials) {
-			app.clientError(w, http.StatusBadRequest)
-			return
-		} else {
-			app.serverError(w, err)
-			return
-		}
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// Проверяем пароль
+	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(credentials.Password))
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized) // Неверный пароль
+		return
 	}
 
 	// Генерация JWT токена
-	expirationTime := time.Now().Add(24 * time.Hour) // Время истечения токена
+	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		UserID: clientId,
+		Telephone: credentials.Telephone,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -155,15 +161,16 @@ func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправка токена в ответе
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   tokenString,
-		Expires: expirationTime,
-	})
-
+	// Возвращаем токен и данные пользователя
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "Login successful")
+
+	response := map[string]interface{}{
+		"token":     tokenString,
+		"telephone": claims.Telephone,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {

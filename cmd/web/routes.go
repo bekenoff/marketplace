@@ -24,7 +24,7 @@ func (app *application) routes() http.Handler {
 	mux.Get("/api/get-product", dynamicMiddleware.ThenFunc(app.getProductByID))
 
 	// Authenticated routes (JWT required)
-	mux.Post("/api/create-client", authMiddleware.ThenFunc(app.signupClient))
+	mux.Post("/api/create-client", dynamicMiddleware.ThenFunc(app.signupClient))
 	mux.Post("/api/add-order", authMiddleware.ThenFunc(app.insertOrder))
 	mux.Get("/api/get-order", authMiddleware.ThenFunc(app.getOrderById))
 	mux.Get("/api/cart", authMiddleware.ThenFunc(app.getCartItems))

@@ -36,6 +36,16 @@ func (m *ClientModel) Insert(telephone int, password string) error {
 	return nil
 }
 
+func (m *ClientModel) GetPasswordByTelephone(telephone int) (string, error) {
+	var password string
+	stmt := `SELECT password FROM user WHERE telephone = ?`
+	err := m.DB.QueryRow(stmt, telephone).Scan(&password)
+	if err != nil {
+		return "", err
+	}
+	return password, nil
+}
+
 func (m *ClientModel) InsertLaw(client *models.ClientLaw) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(client.Password), 12)
 	if err != nil {
