@@ -9,9 +9,19 @@ import (
 	"marketplace/pkg/models"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sfreiberg/gotwilio"
 )
+
+var jwtKey = []byte("your_secret_key")
+
+// Структура для хранения данных токена
+type Claims struct {
+	UserID int `json:"user_id"`
+	jwt.RegisteredClaims
+}
 
 func (app *application) signupClient(w http.ResponseWriter, r *http.Request) {
 	var newClient models.Client
@@ -36,13 +46,41 @@ func (app *application) signupClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) getUserById(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("id")
-	if userIDStr == "" {
-		app.clientError(w, http.StatusBadRequest)
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			// Если токен отсутствует, возвращаем ошибку 401
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		app.serverError(w, err)
 		return
 	}
 
-	user, err := app.client.GetUserById(userIDStr)
+	tokenStr := cookie.Value
+
+	claims := &Claims{}
+
+	// Проверка токена
+	tkn, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil {
+		if err == jwt.ErrSignatureInvalid {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		app.serverError(w, err)
+		return
+	}
+
+	if !tkn.Valid {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// Используем userID из токена
+	user, err := app.client.GetUserById(strconv.Itoa(claims.UserID))
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			app.clientError(w, http.StatusNotFound)
@@ -85,7 +123,6 @@ func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	err := json.NewDecoder(r.Body).Decode(&client)
-
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -98,17 +135,35 @@ func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			app.serverError(w, err)
-
 			return
 		}
 	}
 
-	responseUser, err := app.client.GetUserById(strconv.Itoa(clientId))
+	// Генерация JWT токена
+	expirationTime := time.Now().Add(24 * time.Hour) // Время истечения токена
+	claims := &Claims{
+		UserID: clientId,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
 
-	_, err = w.Write(responseUser)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
+		app.serverError(w, err)
 		return
 	}
+
+	// Отправка токена в ответе
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Value:   tokenString,
+		Expires: expirationTime,
+	})
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "Login successful")
 }
 
 func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {
