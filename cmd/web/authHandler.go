@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,10 +20,11 @@ import (
 
 var jwtKey = []byte("your_secret_key")
 
-// Структура для хранения данных токена
+// Claims struct for storing token data
 type Claims struct {
-	Telephone int `json:"telephone"`
-	UserID    int `json:"user_id"` // добавьте это поле, если оно вам нужно
+	Telephone int  `json:"telephone"`
+	UserID    int  `json:"user_id"`
+	IsRefresh bool `json:"is_refresh"`
 	jwt.RegisteredClaims
 }
 
@@ -124,53 +127,114 @@ func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
 		Password  string `json:"password"`
 	}
 
-	// Декодируем тело запроса
-	err := json.NewDecoder(r.Body).Decode(&credentials)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
+		app.clientError(w, http.StatusBadRequest) // 400 Bad Request
 		return
 	}
+	defer r.Body.Close()
 
-	// Проверка пользователя в базе данных
 	storedPassword, err := app.client.GetPasswordByTelephone(credentials.Telephone)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		app.clientError(w, http.StatusUnauthorized) // 401 Unauthorized
 		return
 	}
 
-	// Проверяем пароль
-	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(credentials.Password))
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized) // Неверный пароль
+	if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(credentials.Password)); err != nil {
+		app.clientError(w, http.StatusUnauthorized) // 401 Unauthorized
 		return
 	}
 
-	// Генерация JWT токена
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		Telephone: credentials.Telephone,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	accessToken, refreshToken, err := app.createTokens(credentials.Telephone)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	// Возвращаем токен и данные пользователя
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
 	response := map[string]interface{}{
-		"token":     tokenString,
-		"telephone": claims.Telephone,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"telephone":     credentials.Telephone,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (app *application) createTokens(telephone int) (string, string, error) {
+	accessClaims := &Claims{
+		Telephone: telephone,
+		UserID:    telephone,
+		IsRefresh: false,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
+	}
+	accessToken, err := app.signToken(accessClaims)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshClaims := &Claims{
+		Telephone: telephone,
+		UserID:    telephone,
+		IsRefresh: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+		},
+	}
+	refreshToken, err := app.signToken(refreshClaims)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+
+}
+
+func NewRefreshToken() (string, error) {
+	b := make([]byte, 32)
+
+	// Используем rand.Read для генерации случайных байтов
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", b), nil
+}
+
+func (app *application) CreateSession(ctx context.Context, user models.Client, accessToken string) (models.Tokens, error) {
+	var (
+		res models.Tokens
+		err error
+	)
+
+	userIDStr := strconv.Itoa(user.Id)
+
+	res.AccessToken = accessToken
+
+	// Генерируем только RefreshToken
+	res.RefreshToken, err = NewRefreshToken()
+	if err != nil {
+		return res, err
+	}
+
+	// Создание и сохранение сессии с RefreshToken
+	session := models.Session{
+		RefreshToken: res.RefreshToken,
+		ExpiresAt:    time.Now().Add(1 * time.Hour),
+	}
+
+	err = app.client.SetSession(ctx, userIDStr, session)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+func (app *application) signToken(claims *Claims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtKey)
 }
 
 func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {
@@ -282,4 +346,52 @@ func (app *application) updatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK) // 200
+}
+
+func (app *application) refreshToken(w http.ResponseWriter, r *http.Request) {
+	var refreshToken struct {
+		Token string `json:"refresh_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&refreshToken); err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	claims := &Claims{}
+	tkn, err := jwt.ParseWithClaims(refreshToken.Token, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !tkn.Valid || !claims.IsRefresh {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	newAccessToken, err := app.createAccessToken(claims)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"access_token": newAccessToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (app *application) createAccessToken(claims *Claims) (string, error) {
+	expirationTime := time.Now().Add(15 * time.Minute)
+	newClaims := &Claims{
+		Telephone: claims.Telephone,
+		UserID:    claims.UserID,
+		IsRefresh: false,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
+
+	newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
+	return newAccessToken.SignedString(jwtKey)
 }
