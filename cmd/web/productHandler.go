@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB
 
-func getProducts(c *gin.Context) {
+func (app *application) getProductsWithRating(w http.ResponseWriter, r *http.Request) {
 	var products []models.Product
 	db.Find(&products)
 
@@ -38,18 +37,14 @@ func getProducts(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, productsWithRating)
-}
+	// Устанавливаем заголовок ответа и код статуса
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
-func createReview(c *gin.Context) {
-	var review models.Review
-	if err := c.ShouldBindJSON(&review); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	// Кодируем данные в JSON и записываем в ResponseWriter
+	if err := json.NewEncoder(w).Encode(productsWithRating); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	db.Create(&review)
-	c.JSON(http.StatusCreated, review)
 }
 
 func (app *application) addReview(w http.ResponseWriter, r *http.Request) {

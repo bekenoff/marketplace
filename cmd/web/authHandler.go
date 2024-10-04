@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +9,7 @@ import (
 	"marketplace/pkg/models"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -51,18 +50,15 @@ func (app *application) signupClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) getUserById(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			// Если токен отсутствует, возвращаем ошибку 401
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		app.serverError(w, err)
+	// Получение токена из заголовков запроса
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	tokenStr := cookie.Value
+	// Удаляем префикс "Bearer " из токена, если он есть
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 	claims := &Claims{}
 
@@ -96,7 +92,7 @@ func (app *application) getUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(user)
+	json.NewEncoder(w).Encode(user)
 }
 
 func (app *application) signupClientLaw(w http.ResponseWriter, r *http.Request) {
@@ -119,122 +115,6 @@ func (app *application) signupClientLaw(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusCreated) // 201
-}
-
-func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
-	var credentials struct {
-		Telephone int    `json:"telephone"`
-		Password  string `json:"password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-		app.clientError(w, http.StatusBadRequest) // 400 Bad Request
-		return
-	}
-	defer r.Body.Close()
-
-	storedPassword, err := app.client.GetPasswordByTelephone(credentials.Telephone)
-	if err != nil {
-		app.clientError(w, http.StatusUnauthorized) // 401 Unauthorized
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(credentials.Password)); err != nil {
-		app.clientError(w, http.StatusUnauthorized) // 401 Unauthorized
-		return
-	}
-
-	accessToken, refreshToken, err := app.createTokens(credentials.Telephone)
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	response := map[string]interface{}{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-		"telephone":     credentials.Telephone,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func (app *application) createTokens(telephone int) (string, string, error) {
-	accessClaims := &Claims{
-		Telephone: telephone,
-		UserID:    telephone,
-		IsRefresh: false,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-		},
-	}
-	accessToken, err := app.signToken(accessClaims)
-	if err != nil {
-		return "", "", err
-	}
-
-	refreshClaims := &Claims{
-		Telephone: telephone,
-		UserID:    telephone,
-		IsRefresh: true,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
-		},
-	}
-	refreshToken, err := app.signToken(refreshClaims)
-	if err != nil {
-		return "", "", err
-	}
-
-	return accessToken, refreshToken, nil
-
-}
-
-func NewRefreshToken() (string, error) {
-	b := make([]byte, 32)
-
-	// Используем rand.Read для генерации случайных байтов
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", b), nil
-}
-
-func (app *application) CreateSession(ctx context.Context, user models.Client, accessToken string) (models.Tokens, error) {
-	var (
-		res models.Tokens
-		err error
-	)
-
-	userIDStr := strconv.Itoa(user.Id)
-
-	res.AccessToken = accessToken
-
-	// Генерируем только RefreshToken
-	res.RefreshToken, err = NewRefreshToken()
-	if err != nil {
-		return res, err
-	}
-
-	// Создание и сохранение сессии с RefreshToken
-	session := models.Session{
-		RefreshToken: res.RefreshToken,
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
-	}
-
-	err = app.client.SetSession(ctx, userIDStr, session)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}
-
-func (app *application) signToken(claims *Claims) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
 }
 
 func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {
@@ -268,6 +148,7 @@ func (app *application) loginAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
 }
 
 // RECOVERY
@@ -394,4 +275,120 @@ func (app *application) createAccessToken(claims *Claims) (string, error) {
 
 	newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
 	return newAccessToken.SignedString(jwtKey)
+}
+
+func (app *application) loginClient(w http.ResponseWriter, r *http.Request) {
+	var credentials struct {
+		Telephone int    `json:"telephone"`
+		Password  string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
+		http.Error(w, "Ошибка при декодировании запроса", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Получение хэшированного пароля из базы данных
+	storedPassword, err := app.client.GetPasswordByTelephone(credentials.Telephone)
+	if err != nil {
+		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
+		return
+	}
+
+	// Сравнение паролей
+	if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(credentials.Password)); err != nil {
+		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
+		return
+	}
+
+	accessToken, refreshToken, err := app.createTokens(credentials.Telephone)
+	if err != nil {
+		http.Error(w, "Ошибка при создании токенов", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"telephone":     credentials.Telephone,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Создание токенов
+func (app *application) createTokens(telephone int) (string, string, error) {
+	// Создание access токена
+	accessClaims := &Claims{
+		Telephone: telephone,
+		UserID:    telephone, // Предположим, что ID клиента равен телефону
+		IsRefresh: false,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // Действителен 15 минут
+		},
+	}
+	accessToken, err := app.signToken(accessClaims)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Создание refresh токена
+	refreshClaims := &Claims{
+		Telephone: telephone,
+		UserID:    telephone,
+		IsRefresh: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // Действителен 7 дней
+		},
+	}
+	refreshToken, err := app.signToken(refreshClaims)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+// Подпись токена
+func (app *application) signToken(claims *Claims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtKey)
+}
+
+// Обновление токенов с использованием refresh токена
+func (app *application) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var refreshToken struct {
+		Token string `json:"refresh_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&refreshToken); err != nil {
+		http.Error(w, "Ошибка при декодировании запроса", http.StatusBadRequest)
+		return
+	}
+
+	claims := &Claims{}
+	tkn, err := jwt.ParseWithClaims(refreshToken.Token, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !tkn.Valid || !claims.IsRefresh {
+		http.Error(w, "Неверный или истекший refresh токен", http.StatusUnauthorized)
+		return
+	}
+
+	// Создание новых токенов
+	newAccessToken, newRefreshToken, err := app.createTokens(claims.Telephone)
+	if err != nil {
+		http.Error(w, "Ошибка при создании новых токенов", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

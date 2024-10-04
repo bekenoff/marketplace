@@ -1,6 +1,7 @@
 package dbs
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -157,6 +158,31 @@ func (m *ClientModel) ChangePassword(id int, oldPassword, newPassword string) er
 	_, err = m.DB.Exec(updateStmt, string(hashedNewPassword), id)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClientModel) SetSession(ctx context.Context, id string, session models.Session) error {
+
+	query := `
+		UPDATE users 
+		SET refresh_token = ?, expires_at = ? 
+		WHERE id = ?
+	`
+
+	result, err := m.DB.ExecContext(ctx, query, session.RefreshToken, session.ExpiresAt, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows updated")
 	}
 
 	return nil

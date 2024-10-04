@@ -2,6 +2,9 @@ package models
 
 import (
 	"errors"
+	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 var (
@@ -17,6 +20,21 @@ type Discount struct {
 	Description string `json:"description"`
 	Percent     int    `json:"discount_percent"`
 	Active      bool   `json:"active"`
+}
+
+type Tokens struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+type Session struct {
+	RefreshToken string    `json:"refreshToken" bson:"refreshToken"`
+	ExpiresAt    time.Time `json:"expiresAt" bson:"expiresAt"`
+}
+
+type Claims struct {
+	UserID uint `json:"user_id"`
+	jwt.StandardClaims
 }
 
 type Product struct {

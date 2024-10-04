@@ -12,13 +12,12 @@ type OrderModel struct {
 }
 
 func (m *OrderModel) Insert(userID int, status, address string, price, productID, quantity int) error {
-	
+
 	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-
 
 	stmtOrder := `INSERT INTO ` + "`order`" + ` (user_id, status, address, price, product_id, quantity) VALUES (?, ?, ?, ?, ?, ?)`
 	_, err = tx.Exec(stmtOrder, userID, status, address, price, productID, quantity)
@@ -26,14 +25,12 @@ func (m *OrderModel) Insert(userID int, status, address string, price, productID
 		return err
 	}
 
-
 	stmtInventory := `UPDATE product_inventory SET quantity = quantity - ? WHERE product_id = ?`
 	_, err = tx.Exec(stmtInventory, quantity, productID)
 	if err != nil {
 		return err
 	}
 
-	
 	if err := tx.Commit(); err != nil {
 		return err
 	}
@@ -48,7 +45,7 @@ func (m *OrderModel) GetOrderById(id int) ([]byte, error) {
 
 	o := &models.Order{}
 
-	err := orderRow.Scan(&o.Id, &o.User_id, &o.Status, &o.Address, &o.Price)
+	err := orderRow.Scan(&o.Id, &o.User_id, &o.Status, &o.Address, &o.Price, &o.Product_id, &o.Quantity)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNoRecord
